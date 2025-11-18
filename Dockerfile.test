@@ -1,0 +1,31 @@
+# DAS Test Docker Image
+# Used for running tests in isolated environment
+
+FROM node:18-bullseye-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    python3 \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy package files first for better caching
+COPY package*.json ./
+COPY extensions/das-core/package*.json ./extensions/das-core/
+
+# Install dependencies
+RUN npm ci
+RUN cd extensions/das-core && npm ci
+
+# Copy source code
+COPY . .
+
+# Build extension
+RUN cd extensions/das-core && npm run compile
+
+# Default command
+CMD ["npm", "test"]

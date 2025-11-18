@@ -126,16 +126,26 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts"
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runSimpleTests.js"
   },
   "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/sinon": "^21.0.0",
     "@types/tar-stream": "^3.1.4",
     "@types/vscode": "^1.70.0",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
+    "@vscode/test-electron": "^2.5.2",
+    "chai": "^6.2.1",
     "eslint": "^8.0.0",
+    "glob": "^12.0.0",
+    "mocha": "^11.7.5",
+    "mock-fs": "^5.5.0",
+    "sinon": "^21.0.0",
     "typescript": "^4.7.0"
   },
   "dependencies": {

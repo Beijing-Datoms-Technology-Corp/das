@@ -35,6 +35,40 @@ build-das.bat   # Windows
 3. Open weaver: `Ctrl+Shift+P` → "DAS: Open Weaver"
 4. Build package: `Ctrl+Shift+P` → "DAS: Build Package"
 
+## 📖 Documentation
+
+- **[Getting Started](./docs/getting-started.md)** - Installation and basic usage
+- **[Weaving Guide](./docs/weaving-guide.md)** - Visual data relationship editor
+- **[Security](./docs/security.md)** - Cryptographic mechanisms and key management
+- **[Format Specification](./docs/format-spec.md)** - DAS package format details
+- **[Build Guide](./BUILD-DAS.md)** - Development and build instructions
+
+## 🏗️ Build from Source
+
+### Quick Build
+```bash
+# Linux/macOS
+./build-das.sh
+
+# Windows
+build-das.bat
+```
+
+### Manual Build
+```bash
+# Install dependencies
+npm install
+cd extensions/das-core && npm install && npm run compile
+
+# Run tests
+cd extensions/das-core && npm test
+
+# Build IDE
+npm run gulp vscode-[platform]-x64
+```
+
+See [BUILD-DAS.md](./BUILD-DAS.md) for detailed instructions.
+
 ---
 
 # Visual Studio Code - Open Source ("Code - OSS")

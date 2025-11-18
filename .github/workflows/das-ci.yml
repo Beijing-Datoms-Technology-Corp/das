@@ -1,0 +1,173 @@
+name: DAS CI/CD
+
+on:
+  push:
+    branches: [ main, release-* ]
+  pull_request:
+    branches: [ main, release-* ]
+
+jobs:
+  # Job 1: Extension Build & Test
+  extension-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install root dependencies
+      run: npm ci
+
+    - name: Install extension dependencies
+      run: |
+        cd extensions/das-core
+        npm ci
+
+    - name: Run hygiene checks
+      run: npm run hygiene
+
+    - name: Compile das-core extension
+      run: |
+        cd extensions/das-core
+        npm run compile
+
+    - name: Run extension tests
+      run: |
+        cd extensions/das-core
+        npm test
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          extensions/das-core/test-results.xml
+          extensions/das-core/coverage/
+
+  # Job 2: Build Validation (Fast compile check)
+  build-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Cache node modules
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run compile check
+      run: npm run gulp compile-build
+
+    - name: Validate product.json
+      run: |
+        if [ ! -f "product.json" ]; then
+          echo "product.json not found!"
+          exit 1
+        fi
+        # Basic JSON validation
+        node -e "JSON.parse(require('fs').readFileSync('product.json', 'utf8'))"
+        echo "✓ product.json is valid JSON"
+
+  # Job 3: Release Build (when tag is pushed)
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [extension-test, build-validation]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Cache node modules
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build extension package
+      run: |
+        cd extensions/das-core
+        npm run compile
+        npx vsce package --out ../das-core.vsix
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: DAS Release ${{ github.ref }}
+        body: |
+          ## DAS: Data Assets Studio Release
+
+          ### Changes
+          - Automated build from CI/CD pipeline
+          - Extension packaged as .vsix file
+          - All tests passed
+
+          ### Installation
+          1. Download the `das-core.vsix` file
+          2. Install in VS Code: Extensions → Install from VSIX
+        draft: false
+        prerelease: false
+
+    - name: Upload extension package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./extensions/das-core.vsix
+        asset_name: das-core.vsix
+        asset_content_type: application/zip
+
+  # Job 4: Docker Build (Optional - for containerized testing)
+  docker-test:
+    runs-on: ubuntu-latest
+    needs: extension-test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build test Docker image
+      run: |
+        docker build -f Dockerfile.test -t das-test .
+        echo "✓ Docker image built successfully"
+
+    - name: Run tests in Docker
+      run: |
+        docker run --rm das-test npm test
+        echo "✓ Tests passed in Docker environment"
