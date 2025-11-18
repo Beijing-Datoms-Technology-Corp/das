@@ -1,0 +1,147 @@
+{
+  "name": "das-core",
+  "displayName": "DAS Core Extension",
+  "description": "Core functionality for Data Assets Studio",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.107.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "das.initWorkspace",
+        "title": "Initialize DAS Workspace"
+      },
+      {
+        "command": "das.openWeaver",
+        "title": "Open Data Weaver"
+      },
+      {
+        "command": "das.buildPackage",
+        "title": "Build DAS Package"
+      },
+      {
+        "command": "das.generateKeys",
+        "title": "Generate Signing Keys"
+      },
+      {
+        "command": "das.verifyPackage",
+        "title": "Verify Package Signature"
+      },
+      {
+        "command": "das.applyStandard",
+        "title": "Apply Data Standard"
+      },
+      {
+        "command": "das.applyStandard.gb",
+        "title": "引用国标 GB/T-XXXX"
+      },
+      {
+        "command": "das.applyStandard.industry",
+        "title": "引用行业标准 A"
+      },
+      {
+        "command": "das.applyStandard.enterprise",
+        "title": "引用企业标准 B"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "das.initWorkspace",
+          "when": "workspaceFolderCount != 0"
+        },
+        {
+          "command": "das.openWeaver",
+          "when": "workspaceFolderCount != 0"
+        },
+        {
+          "command": "das.buildPackage",
+          "when": "workspaceFolderCount != 0"
+        },
+        {
+          "command": "das.generateKeys"
+        },
+        {
+          "command": "das.verifyPackage"
+        },
+        {
+          "command": "das.applyStandard",
+          "when": "workspaceFolderCount != 0"
+        }
+      ],
+      "das/standards": [
+        {
+          "command": "das.applyStandard.gb",
+          "group": "standards@1"
+        },
+        {
+          "command": "das.applyStandard.industry",
+          "group": "standards@2"
+        },
+        {
+          "command": "das.applyStandard.enterprise",
+          "group": "standards@3"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "das.weaver",
+        "displayName": "DAS Weaver Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.das-graph"
+          }
+        ]
+      },
+      {
+        "viewType": "das.dataPreview",
+        "displayName": "DAS Data Preview",
+        "selector": [
+          {
+            "filenamePattern": "*.csv"
+          },
+          {
+            "filenamePattern": "*.parquet"
+          },
+          {
+            "filenamePattern": "*.dump"
+          },
+          {
+            "filenamePattern": "*.db"
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/tar-stream": "^3.1.4",
+    "@types/vscode": "^1.70.0",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "@typescript-eslint/parser": "^5.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^4.7.0"
+  },
+  "dependencies": {
+    "@duckdb/duckdb-wasm": "^1.30.0",
+    "ag-grid-community": "^34.3.1",
+    "ag-grid-react": "^34.3.1",
+    "tar-stream": "^3.1.6"
+  }
+}
