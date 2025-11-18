@@ -187,12 +187,84 @@ export class WeaverPanelEnhanced {
                     }
 
                     .toolbar {
-                        padding: 10px;
+                        padding: 8px 12px;
                         border-bottom: 1px solid var(--vscode-panel-border);
-                        background-color: var(--vscode-editorWidget-background);
+                        background-color: var(--vscode-titleBar-activeBackground, var(--vscode-editorWidget-background));
                         display: flex;
-                        gap: 10px;
+                        justify-content: space-between;
                         align-items: center;
+                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                    }
+
+                    .toolbar-section {
+                        display: flex;
+                        gap: 6px;
+                        align-items: center;
+                    }
+
+                    .toolbar-section.right {
+                        margin-left: auto;
+                    }
+
+                    .toolbar-btn {
+                        padding: 6px 12px;
+                        border: 1px solid transparent;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 12px;
+                        font-weight: 500;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        transition: all 0.15s ease;
+                        outline: none;
+                    }
+
+                    .toolbar-btn:hover {
+                        transform: translateY(-1px);
+                    }
+
+                    .toolbar-btn.primary {
+                        background-color: var(--vscode-button-background);
+                        color: var(--vscode-button-foreground);
+                        border-color: var(--vscode-button-border, transparent);
+                    }
+
+                    .toolbar-btn.primary:hover {
+                        background-color: var(--vscode-button-hoverBackground);
+                    }
+
+                    .toolbar-btn.secondary {
+                        background-color: var(--vscode-button-secondaryBackground);
+                        color: var(--vscode-button-secondaryForeground);
+                        border-color: var(--vscode-button-border);
+                    }
+
+                    .toolbar-btn.secondary:hover {
+                        background-color: var(--vscode-button-secondaryHoverBackground);
+                    }
+
+                    .toolbar-btn.danger {
+                        background-color: var(--vscode-errorForeground);
+                        color: var(--vscode-button-background);
+                        opacity: 0.8;
+                    }
+
+                    .toolbar-btn.danger:hover {
+                        opacity: 1;
+                        background-color: var(--vscode-errorForeground);
+                    }
+
+                    .toolbar-btn:disabled {
+                        opacity: 0.6;
+                        cursor: not-allowed;
+                        transform: none !important;
+                    }
+
+                    .status-text {
+                        font-size: 11px;
+                        color: var(--vscode-descriptionForeground);
+                        font-weight: 500;
                     }
 
                     .main-content {
@@ -372,10 +444,29 @@ export class WeaverPanelEnhanced {
             </head>
             <body>
                 <div class="toolbar">
-                    <button onclick="saveGraph()">💾 Save Graph</button>
-                    <button onclick="loadFiles()">🔄 Refresh Files</button>
-                    <button onclick="clearCanvas()">🗑️ Clear Canvas</button>
-                    <button onclick="fitToScreen()">📐 Fit to Screen</button>
+                    <div class="toolbar-section">
+                        <button class="toolbar-btn primary" onclick="saveGraph()" title="Save Graph">
+                            <span class="icon">💾</span>
+                            <span class="text">Save</span>
+                        </button>
+                        <button class="toolbar-btn secondary" onclick="loadFiles()" title="Refresh Files">
+                            <span class="icon">🔄</span>
+                            <span class="text">Refresh</span>
+                        </button>
+                    </div>
+                    <div class="toolbar-section">
+                        <button class="toolbar-btn danger" onclick="clearCanvas()" title="Clear Canvas">
+                            <span class="icon">🗑️</span>
+                            <span class="text">Clear</span>
+                        </button>
+                        <button class="toolbar-btn secondary" onclick="fitToScreen()" title="Fit to Screen">
+                            <span class="icon">📐</span>
+                            <span class="text">Fit</span>
+                        </button>
+                    </div>
+                    <div class="toolbar-section right">
+                        <span class="status-text" id="statusText">Ready</span>
+                    </div>
                 </div>
                 <div class="main-content">
                     <div class="file-tree">

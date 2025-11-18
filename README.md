@@ -1,3 +1,42 @@
+# DAS: Data Assets Studio
+
+> **Built on VS Code OSS** - A specialized IDE for data asset management
+
+[![DAS Version](https://img.shields.io/badge/version-1.0.0--release--0.0.1-blue.svg)]()
+[![Build Status](https://img.shields.io/badge/build-passing-green.svg)]()
+
+**DAS (Data Assets Studio)** is a vertical IDE built on Visual Studio Code Open Source, specifically designed for managing data assets, creating data relationship visualizations, and building secure data packages.
+
+## Key Features
+
+- 🎯 **Data Preview**: Native support for CSV, Parquet, and database files
+- 🎨 **Visual Weaver**: Drag-and-drop interface for data relationship modeling
+- 🔐 **Secure Packaging**: RSA-signed data packages with integrity verification
+- 📋 **Standards Compliance**: Built-in support for data standards and metadata
+- 🏢 **Enterprise Ready**: Professional UI with theme adaptation
+
+## Quick Start
+
+### Development
+```bash
+# Clone and setup
+git clone <repository-url>
+cd das
+
+# Build DAS
+./build-das.sh  # Linux/macOS
+# or
+build-das.bat   # Windows
+```
+
+### Usage
+1. Initialize workspace: `Ctrl+Shift+P` → "DAS: Init Workspace"
+2. Generate keys: `Ctrl+Shift+P` → "DAS: Generate Keys"
+3. Open weaver: `Ctrl+Shift+P` → "DAS: Open Weaver"
+4. Build package: `Ctrl+Shift+P` → "DAS: Build Package"
+
+---
+
 # Visual Studio Code - Open Source ("Code - OSS")
 [![Feature Requests](https://img.shields.io/github/issues/microsoft/vscode/feature-request.svg)](https://github.com/microsoft/vscode/issues?q=is%3Aopen+is%3Aissue+label%3Afeature-request+sort%3Areactions-%2B1-desc)
 [![Bugs](https://img.shields.io/github/issues/microsoft/vscode/bug.svg)](https://github.com/microsoft/vscode/issues?utf8=✓&q=is%3Aissue+is%3Aopen+label%3Abug)

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { ParquetReader } from 'parquetjs-lite';
 
 export class DataPreviewPanel implements vscode.CustomReadonlyEditorProvider {
     public static readonly viewType = 'das.dataPreview';
@@ -109,10 +110,15 @@ class DataPreviewWebviewPanel {
                     }
                 }
             } else if (fileExt === '.parquet') {
-                // For parquet files, we'll show a placeholder for now
-                // In a full implementation, you'd use DuckDB WASM to read parquet
-                data = [{ status: 'Parquet file preview not yet implemented', size: this.getFileSize(filePath) }];
-                columns = ['status', 'size'];
+                try {
+                    const parquetData = await this.loadParquetData(filePath);
+                    data = parquetData.rows;
+                    columns = parquetData.columns;
+                } catch (error) {
+                    console.error('Failed to load Parquet data:', error);
+                    data = [{ status: `Failed to load Parquet file: ${error.message}`, size: this.getFileSize(filePath) }];
+                    columns = ['status', 'size'];
+                }
             } else {
                 // For other formats, show basic info
                 data = [{ filename: path.basename(filePath), size: this.getFileSize(filePath), type: fileExt }];
@@ -162,6 +168,44 @@ class DataPreviewWebviewPanel {
         }
     }
 
+    private async loadParquetData(filePath: string): Promise<{ columns: string[]; rows: any[] }> {
+        return new Promise((resolve, reject) => {
+            try {
+                const reader = new ParquetReader(filePath);
+
+                reader.on('metadata', (metadata) => {
+                    console.log('Parquet metadata:', metadata);
+                });
+
+                const rows: any[] = [];
+                const columns: string[] = [];
+
+                reader.on('data', (row) => {
+                    // Limit to first 1000 rows for performance
+                    if (rows.length < 1000) {
+                        rows.push(row);
+                    }
+                });
+
+                reader.on('end', () => {
+                    // Extract column names from the first row if available
+                    if (rows.length > 0) {
+                        columns.push(...Object.keys(rows[0]));
+                    }
+
+                    resolve({ columns, rows });
+                });
+
+                reader.on('error', (error) => {
+                    reject(error);
+                });
+
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
     private getHtmlForWebview(): string {
         const nonce = getNonce();
 
@@ -173,6 +217,10 @@ class DataPreviewWebviewPanel {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Data Preview</title>
                 <style>
+                    * {
+                        box-sizing: border-box;
+                    }
+
                     body {
                         margin: 0;
                         padding: 0;
@@ -182,37 +230,74 @@ class DataPreviewWebviewPanel {
                         height: 100vh;
                         display: flex;
                         flex-direction: column;
+                        overflow: hidden;
                     }
 
                     .toolbar {
-                        padding: 10px;
+                        padding: 12px 16px;
                         border-bottom: 1px solid var(--vscode-panel-border);
                         background-color: var(--vscode-editorWidget-background);
                         display: flex;
-                        gap: 10px;
+                        gap: 12px;
                         align-items: center;
+                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                    }
+
+                    .toolbar-title {
+                        font-weight: 600;
+                        font-size: 13px;
+                        color: var(--vscode-foreground);
+                        margin-right: 8px;
                     }
 
                     .query-input {
                         flex: 1;
-                        padding: 5px 8px;
+                        padding: 6px 12px;
                         border: 1px solid var(--vscode-input-border);
                         background-color: var(--vscode-input-background);
                         color: var(--vscode-input-foreground);
-                        border-radius: 3px;
+                        border-radius: 4px;
+                        font-size: 13px;
+                        outline: none;
+                        transition: border-color 0.2s;
+                    }
+
+                    .query-input:focus {
+                        border-color: var(--vscode-focusBorder);
+                        box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+                    }
+
+                    .query-input::placeholder {
+                        color: var(--vscode-input-placeholderForeground);
                     }
 
                     .execute-btn {
-                        padding: 5px 12px;
+                        padding: 6px 16px;
                         background-color: var(--vscode-button-background);
                         color: var(--vscode-button-foreground);
-                        border: none;
-                        border-radius: 3px;
+                        border: 1px solid var(--vscode-button-border, transparent);
+                        border-radius: 4px;
                         cursor: pointer;
+                        font-size: 13px;
+                        font-weight: 500;
+                        transition: all 0.2s;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
                     }
 
                     .execute-btn:hover {
                         background-color: var(--vscode-button-hoverBackground);
+                        transform: translateY(-1px);
+                    }
+
+                    .execute-btn:active {
+                        transform: translateY(0);
+                    }
+
+                    .execute-btn:disabled {
+                        opacity: 0.6;
+                        cursor: not-allowed;
                     }
 
                     .data-container {
@@ -220,58 +305,154 @@ class DataPreviewWebviewPanel {
                         overflow: auto;
                     }
 
-                    table {
+                    .data-grid {
                         width: 100%;
                         border-collapse: collapse;
                         font-size: 12px;
+                        margin: 0;
                     }
 
-                    th, td {
-                        padding: 8px;
+                    .data-grid th,
+                    .data-grid td {
+                        padding: 8px 12px;
                         text-align: left;
                         border-bottom: 1px solid var(--vscode-list-inactiveSelectionBackground);
+                        border-right: 1px solid var(--vscode-list-inactiveSelectionBackground);
                     }
 
-                    th {
+                    .data-grid th {
                         background-color: var(--vscode-sideBarSectionHeader-background);
-                        font-weight: bold;
+                        font-weight: 600;
                         position: sticky;
                         top: 0;
+                        z-index: 10;
+                        color: var(--vscode-sideBarSectionHeader-foreground);
+                        border-top: 1px solid var(--vscode-panel-border);
                     }
 
-                    tr:nth-child(even) {
+                    .data-grid tbody tr {
+                        transition: background-color 0.15s;
+                    }
+
+                    .data-grid tbody tr:nth-child(even) {
                         background-color: var(--vscode-list-inactiveSelectionBackground);
                     }
 
-                    tr:hover {
+                    .data-grid tbody tr:hover {
                         background-color: var(--vscode-list-hoverBackground);
                     }
 
-                    .loading {
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        height: 200px;
-                        font-size: 16px;
+                    .data-grid tbody tr.selected {
+                        background-color: var(--vscode-list-activeSelectionBackground);
+                        color: var(--vscode-list-activeSelectionForeground);
                     }
 
-                    .error {
-                        color: var(--vscode-errorForeground);
-                        padding: 20px;
+                    .data-grid td.numeric {
+                        text-align: right;
+                        font-variant-numeric: tabular-nums;
+                    }
+
+                    .data-grid td.boolean {
                         text-align: center;
+                    }
+
+                    .loading-container {
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        height: 300px;
+                        gap: 16px;
+                    }
+
+                    .loading-spinner {
+                        width: 32px;
+                        height: 32px;
+                        border: 3px solid var(--vscode-progressBar-background);
+                        border-top: 3px solid var(--vscode-progressBar-foreground);
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                    }
+
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+
+                    .loading-text {
+                        color: var(--vscode-descriptionForeground);
+                        font-size: 14px;
+                        font-weight: 500;
+                    }
+
+                    .error-container {
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        height: 300px;
+                        gap: 12px;
+                        text-align: center;
+                        padding: 20px;
+                    }
+
+                    .error-icon {
+                        font-size: 48px;
+                        opacity: 0.6;
+                    }
+
+                    .error-title {
+                        color: var(--vscode-errorForeground);
+                        font-size: 16px;
+                        font-weight: 600;
+                        margin: 0;
+                    }
+
+                    .error-message {
+                        color: var(--vscode-descriptionForeground);
+                        font-size: 13px;
+                        margin: 0;
+                        max-width: 400px;
+                    }
+
+                    .retry-btn {
+                        padding: 6px 12px;
+                        background-color: var(--vscode-button-secondaryBackground);
+                        color: var(--vscode-button-secondaryForeground);
+                        border: 1px solid var(--vscode-button-border);
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 12px;
+                        margin-top: 8px;
+                        transition: all 0.2s;
+                    }
+
+                    .retry-btn:hover {
+                        background-color: var(--vscode-button-secondaryHoverBackground);
                     }
                 </style>
             </head>
             <body>
                 <div class="toolbar">
-                    <span>SQL Query:</span>
-                    <input type="text" class="query-input" id="queryInput" placeholder="SELECT * FROM data WHERE..." />
-                    <button class="execute-btn" onclick="executeQuery()">Execute</button>
+                    <span class="toolbar-title">🔍 Data Preview</span>
+                    <input type="text" class="query-input" id="queryInput" placeholder="Enter SQL query (e.g., SELECT * FROM data WHERE age > 25)" />
+                    <button class="execute-btn" onclick="executeQuery()" id="executeBtn">
+                        <span>▶️</span>
+                        Execute
+                    </button>
                 </div>
                 <div class="data-container">
-                    <div id="loading" class="loading">Loading data...</div>
-                    <div id="error" class="error" style="display: none;"></div>
-                    <table id="dataTable" style="display: none;">
+                    <div id="loading" class="loading-container" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">Loading data...</div>
+                    </div>
+                    <div id="error" class="error-container" style="display: none;">
+                        <div class="error-icon">⚠️</div>
+                        <h3 class="error-title">Failed to load data</h3>
+                        <p class="error-message" id="errorMessage">An unexpected error occurred</p>
+                        <button class="retry-btn" onclick="retryLoad()">Retry</button>
+                    </div>
+                    <table id="dataTable" class="data-grid" style="display: none;">
                         <thead id="tableHead"></thead>
                         <tbody id="tableBody"></tbody>
                     </table>
@@ -280,23 +461,36 @@ class DataPreviewWebviewPanel {
                 <script nonce="${nonce}">
                     const vscode = acquireVsCodeApi();
 
+                    let currentData = null;
+                    let currentColumns = null;
+
                     function showLoading() {
                         document.getElementById('loading').style.display = 'flex';
                         document.getElementById('error').style.display = 'none';
                         document.getElementById('dataTable').style.display = 'none';
+                        document.getElementById('executeBtn').disabled = true;
+                    }
+
+                    function hideLoading() {
+                        document.getElementById('loading').style.display = 'none';
                     }
 
                     function showError(message) {
                         document.getElementById('loading').style.display = 'none';
-                        document.getElementById('error').style.display = 'block';
+                        document.getElementById('error').style.display = 'flex';
                         document.getElementById('dataTable').style.display = 'none';
-                        document.getElementById('error').textContent = message;
+                        document.getElementById('executeBtn').disabled = true;
+                        document.getElementById('errorMessage').textContent = message;
                     }
 
                     function showData(data, columns) {
+                        currentData = data;
+                        currentColumns = columns;
+
                         document.getElementById('loading').style.display = 'none';
                         document.getElementById('error').style.display = 'none';
                         document.getElementById('dataTable').style.display = 'table';
+                        document.getElementById('executeBtn').disabled = false;
 
                         const thead = document.getElementById('tableHead');
                         const tbody = document.getElementById('tableBody');
@@ -319,24 +513,29 @@ class DataPreviewWebviewPanel {
                             const tr = document.createElement('tr');
                             columns.forEach(col => {
                                 const td = document.createElement('td');
-                                td.textContent = row[col] || '';
+                                const value = row[col];
+
+                                // Type detection and formatting
+                                if (typeof value === 'number') {
+                                    td.className = 'numeric';
+                                    td.textContent = value.toLocaleString();
+                                } else if (typeof value === 'boolean') {
+                                    td.className = 'boolean';
+                                    td.textContent = value ? '✓' : '✗';
+                                } else {
+                                    td.textContent = value || '';
+                                }
+
                                 tr.appendChild(td);
                             });
                             tbody.appendChild(tr);
                         });
                     }
 
-                    function executeQuery() {
-                        const query = document.getElementById('queryInput').value.trim();
-                        if (!query) {
-                            showError('Please enter a query');
-                            return;
-                        }
-
+                    function retryLoad() {
                         showLoading();
                         vscode.postMessage({
-                            type: 'executeQuery',
-                            query
+                            type: 'loadData'
                         });
                     }
 
@@ -348,8 +547,12 @@ class DataPreviewWebviewPanel {
                                 showData(message.data, message.columns);
                                 break;
                             case 'queryResult':
-                                // For now, just reload data
-                                showData(message.data || [], message.columns || []);
+                                hideLoading();
+                                if (message.success) {
+                                    showData(message.data, message.columns);
+                                } else {
+                                    showError(message.message || 'Query failed');
+                                }
                                 break;
                             case 'error':
                                 showError(message.message);

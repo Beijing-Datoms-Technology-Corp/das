@@ -81,6 +81,22 @@
 				},
 				"publisherDisplayName": "Microsoft"
 			}
+		},
+		{
+			"name": "das-core",
+			"version": "1.0.0",
+			"sha256": "",
+			"repo": "",
+			"metadata": {
+				"id": "das-core-local",
+				"publisherId": {
+					"publisherId": "das-local-publisher",
+					"publisherName": "DAS Local",
+					"displayName": "DAS Local",
+					"flags": "none"
+				},
+				"publisherDisplayName": "DAS Local"
+			}
 		}
 	],
 	"defaultChatAgent": {
