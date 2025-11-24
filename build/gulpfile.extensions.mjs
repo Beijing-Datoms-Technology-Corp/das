@@ -215,7 +215,14 @@ export const cleanExtensionsBuildTask = task.define('clean-extensions-build', ut
 /**
  * brings in the marketplace extensions for the build
  */
-const bundleMarketplaceExtensionsBuildTask = task.define('bundle-marketplace-extensions-build', () => ext.packageMarketplaceExtensionsStream(false).pipe(gulp.dest('.build')));
+const bundleMarketplaceExtensionsBuildTask = task.define('bundle-marketplace-extensions-build', () => {
+	return new Promise((resolve, reject) => {
+		ext.packageMarketplaceExtensionsStream(false)
+			.pipe(gulp.dest('.build'))
+			.on('end', resolve)
+			.on('error', reject);
+	});
+});
 
 /**
  * Compiles the non-native extensions for the build
@@ -260,6 +267,8 @@ gulp.task(compileExtensionsBuildPullRequestTask);
 gulp.task(task.define('extensions-ci-pr', task.series(compileExtensionsBuildPullRequestTask, compileExtensionMediaBuildTask)));
 
 //#endregion
+
+gulp.task(bundleMarketplaceExtensionsBuildTask);
 
 export const compileWebExtensionsTask = task.define('compile-web', () => buildWebExtensions(false));
 gulp.task(compileWebExtensionsTask);

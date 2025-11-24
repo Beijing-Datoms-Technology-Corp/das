@@ -20,8 +20,8 @@ export namespace snaps {
 
 	switch (process.platform) {
 		case 'darwin':
-			loaderFilepath = `VSCode-darwin/${product.nameLong}.app/Contents/Resources/app/out/vs/loader.js`;
-			startupBlobFilepath = `VSCode-darwin/${product.nameLong}.app/Contents/Frameworks/Electron Framework.framework/Resources/snapshot_blob.bin`;
+			loaderFilepath = `DAS-darwin/${product.nameLong}.app/Contents/Resources/app/out/vs/loader.js`;
+			startupBlobFilepath = `DAS-darwin/${product.nameLong}.app/Contents/Frameworks/Electron Framework.framework/Resources/snapshot_blob.bin`;
 			break;
 
 		case 'win32':

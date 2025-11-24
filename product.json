@@ -85,8 +85,8 @@
 		{
 			"name": "das-core",
 			"version": "1.0.0",
-			"sha256": "",
-			"repo": "",
+			"sha256": "placeholder",
+			"repo": "local",
 			"metadata": {
 				"id": "das-core-local",
 				"publisherId": {
